@@ -1,0 +1,133 @@
+---
+title: "Final Project"
+author: "Haoyu Li"
+date: "12/9/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyquant)
+library(tidyverse)
+library(lubridate)
+library(scales)
+```
+
+# Project introduction
+Since March 2020, COVID-19 has impact our life in every aspect, including the impact on US. stock market. From the March 2020, stock market has fluctuated dramatically because of the lock down order issued by government. And the economy has been challenged by COVID-19 enormously since March. In the period of pandemic, some parts of the stock market has suffer a huge loss since the consumption level has dropped significantly during lock down. On the other hand, some markets has thrive such as Tech companies. In this project, we will use the stock investment advise during the period of COVID-19 to make investment on one or two stocks, and finally see how well our investment doing at the time of selling our stock.
+
+# Define our question
+For this project, our question is that assume we follow the online stock investment advise before July when COVID-19 breakout started in March, and then we invest cash in the stock we decide to track. Finally, do we earn or loss cash in our stock investment by the time we sell our stock at the end of November? and what should we be careful if we want to continue invest in stock market?
+
+# Get stock data using investment advise
+we decide to pick two stocks to combine as our investment.
+
+One stock advise we get is from investment advise fool.com("https://www.fool.com/investing/2020/12/10/forget-moderna-these-2-stocks-may-be-the-biggest-w/"). It advises investors to consider invest a biotech company called Novavax that produces COVID-19 vaccine. Since the trial of vaccine of Novavax is very successful, the stock price goes up as the advise expected.
+
+Below is the stock price data of Novavax from July 1st, 2020 to December 1st, 2020.
+```{r}
+getSymbols("NVAX",from='2020-07-01',to='2020-12-01',warnings = FALSE,auto.assign = TRUE)
+nvax_stock_price<-as.data.frame(NVAX)
+head(nvax_stock_price)
+```
+
+For the second stock, we buy Enphase Energy using the advise from fool.com. The energy industry is less impacted by COVID-19 and expected to grow as the demands for energy increase.
+ENPH: https://www.fool.com/investing/2020/06/09/2-top-growth-stocks-to-buy-in-june.aspx
+```{r}
+getSymbols("ENPH",from='2020-07-01',to='2020-12-01',warnings = FALSE,auto.assign = TRUE)
+enph_stock_price<-as.data.frame(ENPH)
+head(ENPH)
+```
+
+The third stock we consider Okta. This is a tech company that provide ways that can allow employee log in to work systems from their home. When the lockdown happened in March, Okta provide a possible way for employees to work from home.
+
+OKTA: https://www.fool.com/investing/2020/06/03/5-top-stocks-to-buy-in-june.aspx
+```{r}
+getSymbols("OKTA",from='2020-07-01',to='2020-12-01',warnings=FALSE,auto.assign = TRUE)
+okta_stock_price<-as.data.frame(OKTA)
+head(okta_stock_price)
+```
+
+For the simplicity of our question, although we have $250,000 cash in total, we decide to buy 50 shares of each stock and combine them to track our investment.
+
+# Data cleaning
+We select the close stock price of each stock to combine our investment
+```{r}
+## select close stock price
+nvax_close<-nvax_stock_price%>%select(NVAX.Close)
+enph_close<-enph_stock_price%>%select(ENPH.Close)
+okta_close<-okta_stock_price%>%select(OKTA.Close)
+
+## combine together
+combine_investment<-cbind(nvax_close,enph_close,okta_close)
+
+## calculate investment for each stock and combine investment
+combine_investment<-combine_investment%>%mutate(nvax_investment = 50*NVAX.Close)
+combine_investment<-combine_investment%>%mutate(enph_investment = 50*ENPH.Close)
+combine_investment<-combine_investment%>%mutate(okta_investment = 50*OKTA.Close)
+combine_investment<-combine_investment%>%mutate(total_investment = 50*rowSums(.[1:3]))
+
+## add date for analysis purpose
+date<-rownames(nvax_stock_price)
+date<-as.data.frame(date)
+combine_investment<-cbind(combine_investment,date)
+head(combine_investment)
+```
+
+# Investment tracking
+We track our investment through graphs showing each investment trend and total investment trend.
+
+For NVAx investment
+
+```{r echo=FALSE}
+combine_investment$date<-as.Date(combine_investment$date)
+ggplot(data=combine_investment)+
+  geom_line(aes(x=date,y=nvax_investment))+
+  scale_x_date(breaks = date_breaks("months"))+
+  labs(title="NVAX investment trend",y="Investment Amount")
+```
+
+
+
+For ENPH investment
+
+```{r echo=FALSE}
+ggplot(data=combine_investment)+
+  geom_line(aes(x=date,y=enph_investment))+
+  scale_x_date(breaks = date_breaks("months"))+
+  labs(title="ENPH investment trend",y="Investment Amount")
+```
+
+
+
+For OKTA investment
+
+```{r echo=FALSE}
+ggplot(data=combine_investment)+
+  geom_line(aes(x=date,y=okta_investment))+
+  scale_x_date(breaks = date_breaks("months"))+
+  labs(title="OKTA investment trend",y="Investment Amount")
+```
+
+
+For total investment trend
+
+```{r echo=FALSE}
+ggplot(data=combine_investment)+
+  geom_line(aes(x=date,y=total_investment))+
+  scale_x_date(breaks = date_breaks("months"))+
+  labs(title="Total investment trend",y="Investment Amount")
+```
+
+We can see although there are some fluctuations in all three stocks, overall, they all have an upper increasing trend and end up with a higher stock price at the beginning of December.
+
+# Investment result
+We bought in three stocks at the beginning of July and sold them at the end of November. Below is our investment at the end of each month and the final investment result at the end of selling stocks.
+```{r echo=FALSE}
+result<-combine_investment%>%select(nvax_investment,enph_investment,okta_investment,total_investment,date)%>%filter(date=="2020-07-01"|date=="2020-08-03"|date=="2020-09-01"|date=="2020-10-01"|date=="2020-11-02"|date=="2020-11-30")
+print(result)
+```
+
+We can see our total investment went from 16,984 dollars to 26,055 dollars, which is a successful investment for our selected stocks.
+
+
